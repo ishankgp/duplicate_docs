@@ -172,8 +172,9 @@ async def get_document_content(doc_name: str):
     if doc_name in document_cache:
         return document_cache[doc_name]
     
-    # Find document path
-    docs_dir = Path("docs")
+    # Find document path (relative to project root)
+    root_dir = Path(__file__).parent.parent
+    docs_dir = root_dir / "docs"
     doc_path = docs_dir / doc_name
     
     if not doc_path.exists():

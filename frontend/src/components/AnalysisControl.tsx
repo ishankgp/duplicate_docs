@@ -37,15 +37,13 @@ const AnalysisControl: React.FC<AnalysisControlProps> = ({ onAnalysisComplete })
   useEffect(() => {
     fetchStatus();
     
-    // Poll for status if analysis is running
+    // Poll for status regularly
     const interval = setInterval(() => {
-      if (status?.running) {
-        fetchStatus();
-      }
+      fetchStatus();
     }, 2000);
     
     return () => clearInterval(interval);
-  }, [status?.running]);
+  }, []);
 
   const handleRunAnalysis = async () => {
     setLoading(true);

@@ -14,9 +14,11 @@ class DuplicateAnalyzer:
     """Handles running analysis and parsing results."""
     
     def __init__(self, docs_dir: str = "docs", output_dir: str = "dedup_out"):
-        self.docs_dir = Path(docs_dir)
-        self.output_dir = Path(output_dir)
-        self.runner_script = Path("corpus_dedup_runner.py")
+        # Get paths relative to the project root (parent of backend/)
+        root_dir = Path(__file__).parent.parent
+        self.docs_dir = root_dir / docs_dir
+        self.output_dir = root_dir / output_dir
+        self.runner_script = root_dir / "corpus_dedup_runner.py"
         
     def run_analysis(self, use_embeddings: bool = False, **kwargs) -> Dict[str, Any]:
         """
