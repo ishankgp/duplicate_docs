@@ -7,7 +7,17 @@ Get the Duplicate Document Detection system running in 5 minutes!
 ### Backend (Python)
 ```bash
 cd backend
+# Using uv (recommended)
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+
+# Or using pip
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate     # Windows
 pip install -r requirements.txt
+
 cd ..
 ```
 
@@ -20,56 +30,65 @@ cd ..
 
 ## 2. Start the Application
 
-### Option A: Two Terminals (Recommended for Development)
+### Option A: Using Start Scripts (Recommended)
 
 **Terminal 1 - Backend:**
 ```bash
-# Windows
-start_backend.bat
-
 # Linux/Mac
 chmod +x start_backend.sh
 ./start_backend.sh
+
+# Windows
+start_backend.bat
 ```
 
 **Terminal 2 - Frontend:**
 ```bash
-# Windows
-start_frontend.bat
-
 # Linux/Mac  
 chmod +x start_frontend.sh
 ./start_frontend.sh
+
+# Windows
+start_frontend.bat
 ```
 
-### Option B: Command Line
+### Option B: Manual Start
 
-**Windows:**
+**Terminal 1 - Backend:**
 ```bash
-# Terminal 1
-cd backend && python main.py
-
-# Terminal 2
-cd frontend && npm run dev
+cd backend
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate     # Windows
+python main.py
 ```
 
-**Linux/Mac:**
+**Terminal 2 - Frontend:**
 ```bash
-# Terminal 1
-cd backend && python main.py
-
-# Terminal 2
-cd frontend && npm run dev
+cd frontend
+npm run dev
 ```
 
 ## 3. Open the App
 
-Open your browser and navigate to:
-```
-http://localhost:3000
+The application will automatically choose available ports:
+
+- **Frontend**: Usually http://localhost:3000 (or 3001 if 3000 is busy)
+- **Backend**: http://localhost:8000
+
+### For Dev Containers/Codespaces
+If you're using GitHub Codespaces or other dev containers, VS Code will automatically forward the ports and show you the URLs in the terminal output.
+
+## 4. Environment Configuration
+
+The system automatically detects your environment (local vs dev container) and configures itself accordingly.
+
+**Optional**: Create a `.env` file in the frontend directory to override settings:
+```bash
+# Example .env file
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-## 4. Run Your First Analysis
+## 5. Run Your First Analysis
 
 1. Ensure you have `.docx` files in the `docs/` folder (2 are already there)
 2. Click **"Run New Analysis"** in the left panel

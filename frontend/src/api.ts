@@ -3,14 +3,14 @@
  */
 
 import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000';
+import config from './config';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: config.apiBaseUrl,
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30 second timeout
 });
 
 // Types

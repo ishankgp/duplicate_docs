@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connection Test</title>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        // Test different API URLs
+        const testUrls = [
+            'http://localhost:8000/api/analysis/status',
+            'https://glowing-space-umbrella-6r6qq9xrgx5c5xvq-8000.app.github.dev/api/analysis/status',
+            'https://8000-glowing-space-umbrella-6r6qq9xrgx5c5xvq.app.github.dev/api/analysis/status'
+        ];
+        
+        const results = document.getElementById('results');
+        
+        async function testUrl(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                results.innerHTML += `<p style="color: green;">✅ ${url} - Working!</p>`;
+                console.log('Success:', url, data);
+                return true;
+            } catch (error) {
+                results.innerHTML += `<p style="color: red;">❌ ${url} - Failed: ${error.message}</p>`;
+                console.log('Failed:', url, error);
+                return false;
+            }
+        }
+        
+        async function testAll() {
+            results.innerHTML = '<p>Testing API connections...</p>';
+            for (const url of testUrls) {
+                await testUrl(url);
+            }
+        }
+        
+        testAll();
+    </script>
+</body>
+</html>

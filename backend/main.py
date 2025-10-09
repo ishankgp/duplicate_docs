@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import json
+import os
 from datetime import datetime
 
 from analyzer import DuplicateAnalyzer
@@ -16,10 +17,55 @@ from converter import convert_docx_to_html
 
 app = FastAPI(title="Duplicate Document Detection API")
 
+# Dynamic CORS configuration for dev containers and local development
+def get_cors_origins():
+    """Get CORS origins based on environment"""
+    # Base origins for local development
+    origins = [
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "http://localhost:5173",  # Vite default
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:5173",
+    ]
+    
+    # Add dev container specific origins
+    if os.getenv('CODESPACES'):
+        # GitHub Codespaces
+        codespace_name = os.getenv('CODESPACE_NAME')
+        github_domain = os.getenv('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN', 'app.github.dev')
+        if codespace_name:
+            # Add multiple URL patterns that GitHub Codespaces might use
+            origins.extend([
+                f"https://{codespace_name}-3000.{github_domain}",
+                f"https://{codespace_name}-3001.{github_domain}",
+                f"https://{codespace_name}-5173.{github_domain}",
+                f"https://3000-{codespace_name}.{github_domain}",
+                f"https://3001-{codespace_name}.{github_domain}",
+                f"https://5173-{codespace_name}.{github_domain}",
+            ])
+    
+    # Add Gitpod origins if detected
+    if os.getenv('GITPOD_WORKSPACE_URL'):
+        workspace_url = os.getenv('GITPOD_WORKSPACE_URL')
+        if workspace_url:
+            base_url = workspace_url.replace('https://', '').replace('http://', '')
+            origins.extend([
+                f"https://3000-{base_url}",
+                f"https://3001-{base_url}",
+                f"https://5173-{base_url}",
+            ])
+    
+    # For development, allow all origins (can be more restrictive in production)
+    origins.append("*")
+    
+    return origins
+
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # React dev servers
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

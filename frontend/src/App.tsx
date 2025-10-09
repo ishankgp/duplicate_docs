@@ -5,12 +5,14 @@ import DocumentViewer from './components/DocumentViewer';
 import DocumentComparison from './components/DocumentComparison';
 import AnalysisControl from './components/AnalysisControl';
 import { getAnalysisStatus } from './api';
+import config from './config';
 
 function App() {
   const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'comparison' | 'viewer' | null>(null);
   const [hasResults, setHasResults] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     checkAnalysisStatus();
@@ -18,10 +20,15 @@ function App() {
 
   const checkAnalysisStatus = async () => {
     try {
+      console.log('Attempting to fetch from:', config.apiBaseUrl);
       const status = await getAnalysisStatus();
+      console.log('API Response:', status);
       setHasResults(status.has_results);
+      setApiError(null);
     } catch (err) {
-      console.error('Error checking analysis status:', err);
+      console.error('API Error:', err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setApiError(`Failed to connect to API at ${config.apiBaseUrl}. Error: ${errorMessage}`);
     }
   };
 
@@ -71,6 +78,26 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* API Error Display */}
+        {apiError && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 className="font-bold text-red-900 mb-2">🔌 Connection Error</h3>
+            <p className="text-sm text-red-800 mb-2">{apiError}</p>
+            <div className="text-xs text-red-700 bg-red-100 p-2 rounded">
+              <strong>Debug Info:</strong><br/>
+              Expected API URL: {config.apiBaseUrl}<br/>
+              Current Location: {window.location.href}<br/>
+              Is Dev Container: {config.isDevContainer ? 'Yes' : 'No'}
+            </div>
+            <button 
+              onClick={checkAnalysisStatus}
+              className="mt-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Analysis Control */}
           <div className="lg:col-span-1">
