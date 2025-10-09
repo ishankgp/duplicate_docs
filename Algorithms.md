@@ -2,10 +2,14 @@
 
 This document explains the different algorithmic approaches used in the Duplicate Document Detection system.
 
+**Note:** All algorithms detect duplicates in two categories:
+- **Cross-Document**: Duplicates found between different documents
+- **Within-Document**: Duplicates found within the same document (e.g., repeated sections, boilerplate text)
+
 ## 1. Exact Match Detection
 
 ### Overview
-Identifies sentences that are exactly identical across documents.
+Identifies sentences that are exactly identical both across documents and within the same document.
 
 ### Algorithm
 - **Input**: Sentences are determined by splitting the document text using standard sentence boundary detection (e.g., punctuation such as `.`, `!`, `?`), then each sentence is normalized by converting to lowercase and removing punctuation and special characters.
@@ -29,7 +33,7 @@ Identifies sentences that are exactly identical across documents.
 ## 2. Near-Duplicate Detection (SimHash)
 
 ### Overview
-Identifies sentences that are nearly identical using SimHash algorithm.
+Identifies sentences that are nearly identical using SimHash algorithm. Detects near-duplicates both across and within documents.
 
 ### Algorithm
 - **Input**: Normalized sentence text
@@ -58,7 +62,7 @@ Identifies sentences that are nearly identical using SimHash algorithm.
 ## 3. Semantic Match Detection (Embeddings)
 
 ### Overview
-Identifies sentences with similar meaning using sentence embeddings.
+Identifies sentences with similar meaning using sentence embeddings. Works across and within documents.
 
 ### Algorithm
 - **Input**: Normalized sentence text
@@ -76,7 +80,7 @@ Identifies sentences with similar meaning using sentence embeddings.
   - **Community Support:** It is widely used and well-maintained in the NLP community.
 
   FAISS is a powerful library for fast approximate nearest neighbor search, especially useful for very large datasets. However, for most deduplication scenarios involving thousands or tens of thousands of sentences, the default embedding model (`all-MiniLM-L6-v2`) combined with in-memory similarity search is efficient and simple to use, without the added complexity of setting up FAISS. FAISS becomes more advantageous when scaling to millions of sentences, where brute-force similarity search is no longer practical. For typical use cases, the overhead of integrating FAISS is not justified, but it remains an option for extremely large corpora to improve scalability and memory efficiency.
-- **Output**: Pairs of semantically similar sentences with cosine similarity
+- **Output**: Pairs of semantically similar sentences with cosine similarity scores and category labels (cross-document or within-document)
 
 ### Use Case
 - Detecting conceptually similar content

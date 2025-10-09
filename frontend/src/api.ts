@@ -14,6 +14,15 @@ const api = axios.create({
 });
 
 // Types
+export interface DocumentRelationship {
+  doc: string;
+  exact_matches: number;
+  simhash_matches: number;
+  embedding_matches: number;
+  total_matches: number;
+  overlap_percentage: number;
+}
+
 export interface DocumentMetrics {
   doc: string;
   total_sentences: number;
@@ -22,6 +31,7 @@ export interface DocumentMetrics {
   in_block_sentences: number;
   in_block_sentences_pct: number;
   similarity_score: number;
+  related_documents?: DocumentRelationship[];
 }
 
 export interface AnalysisStatus {
@@ -58,6 +68,7 @@ export interface DuplicateMatch {
   text: string;
   other_text: string;
   type: string;
+  category?: "cross-document" | "within-document";  // Make optional for backwards compatibility
   hamming?: number;
   cosine?: number;
 }
@@ -150,6 +161,11 @@ export const getSimilarityMatrix = async (): Promise<Record<string, Record<strin
 
 export const getBlockMatches = async (): Promise<any> => {
   const response = await api.get('/api/blocks');
+  return response.data;
+};
+
+export const getDocumentRelationships = async (docName: string): Promise<{ relationships: DocumentRelationship[]; total: number }> => {
+  const response = await api.get(`/api/document/${encodeURIComponent(docName)}/relationships`);
   return response.data;
 };
 

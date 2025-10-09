@@ -189,7 +189,8 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentB_id'],
                     "text": pair['textA'],
                     "other_text": pair['textB'],
-                    "type": "exact"
+                    "type": "exact",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentA_id'])
             elif pair['docB'] == doc_name:
@@ -199,7 +200,8 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentA_id'],
                     "text": pair['textB'],
                     "other_text": pair['textA'],
-                    "type": "exact"
+                    "type": "exact",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentB_id'])
         
@@ -213,7 +215,8 @@ class DuplicateAnalyzer:
                     "text": pair['textA'],
                     "other_text": pair['textB'],
                     "hamming": pair['hamming'],
-                    "type": "simhash"
+                    "type": "simhash",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentA_id'])
             elif pair['docB'] == doc_name:
@@ -224,7 +227,8 @@ class DuplicateAnalyzer:
                     "text": pair['textB'],
                     "other_text": pair['textA'],
                     "hamming": pair['hamming'],
-                    "type": "simhash"
+                    "type": "simhash",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentB_id'])
         
@@ -238,7 +242,8 @@ class DuplicateAnalyzer:
                     "text": pair['textA'],
                     "other_text": pair['textB'],
                     "cosine": pair['cosine'],
-                    "type": "embedding"
+                    "type": "embedding",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentA_id'])
             elif pair['docB'] == doc_name:
@@ -249,7 +254,8 @@ class DuplicateAnalyzer:
                     "text": pair['textB'],
                     "other_text": pair['textA'],
                     "cosine": pair['cosine'],
-                    "type": "embedding"
+                    "type": "embedding",
+                    "category": pair.get('category', 'cross-document')
                 })
                 result["duplicate_sentences"].add(pair['sentB_id'])
         
@@ -282,6 +288,71 @@ class DuplicateAnalyzer:
         
         # Convert set to sorted list
         result["duplicate_sentences"] = sorted(list(result["duplicate_sentences"]))
+        
+        return result
+    
+    def get_document_relationships(self, doc_name: str) -> List[Dict[str, Any]]:
+        """
+        Get all documents related to the specified document with detailed metrics.
+        
+        Args:
+            doc_name: Name of the document
+            
+        Returns:
+            List of related documents with match counts and overlap percentages
+        """
+        # Count matches by document and type
+        relationships = defaultdict(lambda: {
+            'doc': '',
+            'exact_matches': 0,
+            'simhash_matches': 0,
+            'embedding_matches': 0,
+            'total_matches': 0
+        })
+        
+        # Count exact matches
+        for pair in self.get_exact_pairs():
+            if pair['docA'] == doc_name and pair['docB'] != doc_name:
+                relationships[pair['docB']]['doc'] = pair['docB']
+                relationships[pair['docB']]['exact_matches'] += 1
+            elif pair['docB'] == doc_name and pair['docA'] != doc_name:
+                relationships[pair['docA']]['doc'] = pair['docA']
+                relationships[pair['docA']]['exact_matches'] += 1
+        
+        # Count simhash matches
+        for pair in self.get_simhash_pairs():
+            if pair['docA'] == doc_name and pair['docB'] != doc_name:
+                relationships[pair['docB']]['doc'] = pair['docB']
+                relationships[pair['docB']]['simhash_matches'] += 1
+            elif pair['docB'] == doc_name and pair['docA'] != doc_name:
+                relationships[pair['docA']]['doc'] = pair['docA']
+                relationships[pair['docA']]['simhash_matches'] += 1
+        
+        # Count embedding matches
+        for pair in self.get_embedding_pairs():
+            if pair['docA'] == doc_name and pair['docB'] != doc_name:
+                relationships[pair['docB']]['doc'] = pair['docB']
+                relationships[pair['docB']]['embedding_matches'] += 1
+            elif pair['docB'] == doc_name and pair['docA'] != doc_name:
+                relationships[pair['docA']]['doc'] = pair['docA']
+                relationships[pair['docA']]['embedding_matches'] += 1
+        
+        # Calculate totals and percentages
+        metrics = {m['doc']: m for m in self.get_doc_metrics()}
+        current_doc_sentences = metrics.get(doc_name, {}).get('total_sentences', 1)
+        
+        result = []
+        for other_doc, counts in relationships.items():
+            total = counts['exact_matches'] + counts['simhash_matches'] + counts['embedding_matches']
+            counts['total_matches'] = total
+            
+            # Calculate overlap percentage based on current document's sentence count
+            counts['overlap_percentage'] = round((total / current_doc_sentences) * 100, 2) if current_doc_sentences > 0 else 0
+            
+            result.append(counts)
+        
+        # Sort by total matches descending
+        result.sort(key=lambda x: x['total_matches'], reverse=True)
         
         return result
     

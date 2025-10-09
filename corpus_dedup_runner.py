@@ -27,7 +27,6 @@ import argparse, re, json, math, hashlib
 from dataclasses import dataclass
 from itertools import combinations
 from pathlib import Path
-from zipfile import ZipFile
 from collections import defaultdict, Counter
 from typing import List, Tuple, Dict, Iterable
 import numpy as np
@@ -37,16 +36,32 @@ from tqdm import tqdm
 # ----------------------------- Text IO -----------------------------
 
 def read_docx_text(path: Path) -> str:
-    """Extract visible text from a .docx by parsing word/document.xml"""
-    with ZipFile(path) as z:
-        with z.open("word/document.xml") as f:
-            xml = f.read().decode("utf-8", errors="ignore")
-    # Very lenient parse without heavy XML deps
-    # Pull text inside <w:t>...</w:t>
-    out = []
-    for m in re.finditer(r"<w:t[^>]*>(.*?)</w:t>", xml, flags=re.S|re.I):
-        out.append(re.sub(r"\s+", " ", m.group(1)))
-    return "\n".join(out)
+    """Extract visible text from a .docx using python-docx library."""
+    from docx import Document
+    
+    try:
+        doc = Document(path)
+        
+        # Extract text from paragraphs
+        paragraphs = []
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if text:
+                paragraphs.append(text)
+        
+        # Extract text from tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    text = cell.text.strip()
+                    if text:
+                        paragraphs.append(text)
+        
+        return "\n".join(paragraphs)
+    
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        return ""
 
 def normalize_sentence(s: str) -> str:
     s = s.lower()
@@ -213,8 +228,6 @@ def run(args):
                 ia = idxs[i]; A = all_items[ia]
                 for j in range(i+1, L):
                     ib = idxs[j]; B = all_items[ib]
-                    if A.doc_id == B.doc_id:
-                        continue
                     a, b = (ia, ib) if ia < ib else (ib, ia)
                     if (a,b) in seen:
                         continue
@@ -238,8 +251,6 @@ def run(args):
                     if j_idx < 0: 
                         continue
                     B = all_items[j_idx]
-                    if A.doc_id == B.doc_id:
-                        continue
                     if sim >= args.embed_threshold_moderate:
                         a, b = (i, int(j_idx)) if i < j_idx else (int(j_idx), i)
                         embed_pairs.append((a,b,float(sim)))
@@ -256,8 +267,10 @@ def run(args):
         rows = []
         for a,b in sorted(exact_pairs):
             A = all_items[a]; B = all_items[b]
+            category = "within-document" if A.doc_id == B.doc_id else "cross-document"
             rows.append({"docA": A.doc_path.name, "sentA_id": A.sent_id, "textA": A.raw[:240],
-                         "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240]})
+                         "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240],
+                         "category": category})
         df = pd.DataFrame(rows)
         df.to_csv(out_dir / "exact_sentence_pairs.csv", index=False)
         return df
@@ -266,8 +279,10 @@ def run(args):
         rows_strict, rows_moderate = [], []
         for a,b,ham in sorted(sim_pairs, key=lambda x: (x[2], all_items[x[0]].doc_id, all_items[x[1]].doc_id)):
             A = all_items[a]; B = all_items[b]
+            category = "within-document" if A.doc_id == B.doc_id else "cross-document"
             row = {"docA": A.doc_path.name, "sentA_id": A.sent_id, "textA": A.raw[:240],
-                   "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240], "hamming": ham}
+                   "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240], "hamming": ham,
+                   "category": category}
             if ham <= args.sim_hamming_strict:
                 rows_strict.append(row)
             rows_moderate.append(row)
@@ -277,13 +292,15 @@ def run(args):
 
     def write_embeddings():
         if not embed_pairs:
-            pd.DataFrame(columns=["docA","sentA_id","textA","docB","sentB_id","textB","cosine"]).to_csv(out_dir / "embed_sentence_pairs.csv", index=False)
+            pd.DataFrame(columns=["docA","sentA_id","textA","docB","sentB_id","textB","cosine","category"]).to_csv(out_dir / "embed_sentence_pairs.csv", index=False)
             return 0,0
         rows_strict, rows_moderate = [], []
         for a,b,s in sorted(embed_pairs, key=lambda x: (-x[2], all_items[x[0]].doc_id, all_items[x[1]].doc_id)):
             A = all_items[a]; B = all_items[b]
+            category = "within-document" if A.doc_id == B.doc_id else "cross-document"
             row = {"docA": A.doc_path.name, "sentA_id": A.sent_id, "textA": A.raw[:240],
-                   "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240], "cosine": round(s,4)}
+                   "docB": B.doc_path.name, "sentB_id": B.sent_id, "textB": B.raw[:240], "cosine": round(s,4),
+                   "category": category}
             if s >= args.embed_threshold_strict:
                 rows_strict.append(row)
             if s >= args.embed_threshold_moderate:
@@ -302,7 +319,6 @@ def run(args):
     def add_edge(a, b):
         A = all_items[a]; B = all_items[b]
         da, db = A.doc_id, B.doc_id
-        if da == db: return
         if da > db:
             da, db = db, da
             A, B = B, A

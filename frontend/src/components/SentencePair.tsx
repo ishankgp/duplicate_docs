@@ -9,7 +9,16 @@ interface SentencePairProps {
 }
 
 const SentencePair: React.FC<SentencePairProps> = ({ match, currentDoc, onClick }) => {
+  // Defensive: default to cross-document if category is missing
+  const category = match.category ?? 'cross-document';
+  
   const getBorderColor = () => {
+    if (category === 'within-document') {
+      // Different color for within-document duplicates
+      if (match.type === 'exact') return 'border-l-purple-500';
+      if (match.type === 'simhash') return 'border-l-purple-400';
+      return 'border-l-purple-300';
+    }
     if (match.type === 'exact') return 'border-l-red-500';
     if (match.type === 'simhash') return 'border-l-orange-500';
     return 'border-l-yellow-500';
@@ -27,12 +36,20 @@ const SentencePair: React.FC<SentencePairProps> = ({ match, currentDoc, onClick 
             type={match.type as any} 
             showLabel={true}
           />
+          {category === 'within-document' && (
+            <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
+              Within Doc
+            </span>
+          )}
           <span className="text-xs text-gray-500">
             Sentence #{match.sent_id}
           </span>
         </div>
         <span className="text-xs text-gray-500">
-          → {match.other_doc} (#{match.other_sent_id})
+          {category === 'within-document' 
+            ? `→ Same document (#{match.other_sent_id})`
+            : `→ ${match.other_doc} (#{match.other_sent_id})`
+          }
         </span>
       </div>
       
