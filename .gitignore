@@ -28,7 +28,9 @@ env/
 # Analysis outputs
 dedup_out/
 *.csv
-*.json
+# Ignore JSON files only in output directory, but keep package.json and tsconfig.json
+dedup_out/*.json
+summary.json
 
 # Node
 node_modules/
