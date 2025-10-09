@@ -2,25 +2,15 @@
  * Configuration for API endpoints that works in both dev containers and local environments
  */
 
-// Extend ImportMeta interface for Vite env
-interface ImportMetaEnv {
-  readonly VITE_API_BASE_URL?: string;
-}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv;
-}
-
 // Function to detect if we're running in a dev container or codespace
 const isDevContainer = (): boolean => {
-  // Check for common dev container environment variables
+  // Check browser-based indicators since process.env is not available in browser
   return !!(
-    process.env.CODESPACES || 
-    process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN ||
-    process.env.VSCODE_REMOTE_USER ||
     window.location.hostname.includes('github.dev') ||
     window.location.hostname.includes('codespaces') ||
-    window.location.hostname.includes('gitpod')
+    window.location.hostname.includes('gitpod') ||
+    window.location.hostname.includes('preview.app') ||
+    window.location.hostname.includes('app.github.dev')
   );
 };
 
@@ -71,12 +61,9 @@ export const config = {
     port: window.location.port,
     href: window.location.href,
     computedApiUrl: getApiBaseUrl(),
-    env: {
-      codespaces: process.env.CODESPACES,
-      githubCodespaces: process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN,
-      vscodeRemoteUser: process.env.VSCODE_REMOTE_USER,
-      viteApiBaseUrl: import.meta.env.VITE_API_BASE_URL,
-    }
+    // Remove process.env references since they're not available in browser
+    userAgent: navigator.userAgent,
+    viteApiBaseUrl: import.meta.env.VITE_API_BASE_URL,
   }
 };
 
