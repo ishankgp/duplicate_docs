@@ -350,6 +350,30 @@ async def get_block_matches():
     }
 
 
+@app.get("/api/document/{doc_name}/relationships")
+async def get_document_relationships(doc_name: str):
+    """
+    Get documents related to the specified document with detailed metrics.
+    
+    Args:
+        doc_name: Name of the document file
+        
+    Returns:
+        List of related documents with match counts and overlap percentages
+    """
+    if not analyzer.has_results():
+        raise HTTPException(status_code=404, detail="No analysis results found")
+    
+    try:
+        relationships = analyzer.get_document_relationships(doc_name)
+        return {
+            "relationships": relationships,
+            "total": len(relationships)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting relationships: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
