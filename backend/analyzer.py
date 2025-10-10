@@ -20,6 +20,16 @@ class DuplicateAnalyzer:
         self.output_dir = root_dir / output_dir
         self.runner_script = root_dir / "corpus_dedup_runner.py"
         
+    def _safe_read_csv(self, file_path: Path) -> pd.DataFrame:
+        """Safe CSV reader with empty-file handling."""
+        if not file_path.exists() or file_path.stat().st_size == 0:
+            return pd.DataFrame()
+        try:
+            df = pd.read_csv(file_path)
+            return df
+        except Exception as e:
+            return pd.DataFrame()
+        
     def run_analysis(self, use_embeddings: bool = False, **kwargs) -> Dict[str, Any]:
         """
         Run the corpus_dedup_runner.py script.
@@ -105,59 +115,45 @@ class DuplicateAnalyzer:
     def get_doc_metrics(self) -> List[Dict[str, Any]]:
         """Load document metrics with similarity scores."""
         metrics_file = self.output_dir / "doc_metrics.csv"
-        if not metrics_file.exists():
+        df = self._safe_read_csv(metrics_file)
+        if df.empty:
             return []
         
-        df = pd.read_csv(metrics_file)
-        
-        # Calculate aggregate similarity score
-        df['similarity_score'] = (
-            df['matched_sentences_pct'] * 0.6 + 
-            df['in_block_sentences_pct'] * 0.4
-        )
-        
-        # Sort by similarity score descending
-        df = df.sort_values('similarity_score', ascending=False)
-        
-        return df.to_dict('records')
+        try:
+            df['similarity_score'] = (
+                df['matched_sentences_pct'] * 0.6 + 
+                df['in_block_sentences_pct'] * 0.4
+            )
+            df = df.sort_values('similarity_score', ascending=False)
+            return df.to_dict('records')
+        except Exception as e:
+            return []
     
     def get_exact_pairs(self) -> List[Dict[str, Any]]:
         """Load exact sentence pairs."""
         file_path = self.output_dir / "exact_sentence_pairs.csv"
-        if not file_path.exists():
-            return []
-        
-        df = pd.read_csv(file_path)
-        return df.to_dict('records')
+        df = self._safe_read_csv(file_path)
+        return df.to_dict('records') if not df.empty else []
     
     def get_simhash_pairs(self, strict: bool = False) -> List[Dict[str, Any]]:
         """Load SimHash sentence pairs."""
         filename = "simhash_sentence_pairs_strict.csv" if strict else "simhash_sentence_pairs.csv"
         file_path = self.output_dir / filename
-        if not file_path.exists():
-            return []
-        
-        df = pd.read_csv(file_path)
-        return df.to_dict('records')
+        df = self._safe_read_csv(file_path)
+        return df.to_dict('records') if not df.empty else []
     
     def get_embedding_pairs(self, strict: bool = False) -> List[Dict[str, Any]]:
         """Load embedding sentence pairs."""
         filename = "embed_sentence_pairs_strict.csv" if strict else "embed_sentence_pairs.csv"
         file_path = self.output_dir / filename
-        if not file_path.exists():
-            return []
-        
-        df = pd.read_csv(file_path)
-        return df.to_dict('records')
+        df = self._safe_read_csv(file_path)
+        return df.to_dict('records') if not df.empty else []
     
     def get_block_matches(self) -> List[Dict[str, Any]]:
         """Load block matches."""
         file_path = self.output_dir / "block_matches.csv"
-        if not file_path.exists():
-            return []
-        
-        df = pd.read_csv(file_path)
-        return df.to_dict('records')
+        df = self._safe_read_csv(file_path)
+        return df.to_dict('records') if not df.empty else []
     
     def get_duplicates_for_doc(self, doc_name: str) -> Dict[str, Any]:
         """
@@ -212,7 +208,7 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentB_id'],
                     "text": pair['textA'],
                     "other_text": pair['textB'],
-                    "hamming": pair['hamming'],
+                    "hamming": pair.get('hamming'),
                     "type": "simhash"
                 })
                 result["duplicate_sentences"].add(pair['sentA_id'])
@@ -223,7 +219,7 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentA_id'],
                     "text": pair['textB'],
                     "other_text": pair['textA'],
-                    "hamming": pair['hamming'],
+                    "hamming": pair.get('hamming'),
                     "type": "simhash"
                 })
                 result["duplicate_sentences"].add(pair['sentB_id'])
@@ -237,7 +233,7 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentB_id'],
                     "text": pair['textA'],
                     "other_text": pair['textB'],
-                    "cosine": pair['cosine'],
+                    "cosine": pair.get('cosine'),
                     "type": "embedding"
                 })
                 result["duplicate_sentences"].add(pair['sentA_id'])
@@ -248,14 +244,14 @@ class DuplicateAnalyzer:
                     "other_sent_id": pair['sentA_id'],
                     "text": pair['textB'],
                     "other_text": pair['textA'],
-                    "cosine": pair['cosine'],
+                    "cosine": pair.get('cosine'),
                     "type": "embedding"
                 })
                 result["duplicate_sentences"].add(pair['sentB_id'])
         
         # Block matches
         for block in self.get_block_matches():
-            if block['docA'] == doc_name:
+            if block.get('docA') == doc_name:
                 result["blocks"].append({
                     "other_doc": block['docB'],
                     "start": block['A_start'],
@@ -267,7 +263,7 @@ class DuplicateAnalyzer:
                 # Add all sentences in block
                 for sid in range(block['A_start'], block['A_end'] + 1):
                     result["duplicate_sentences"].add(sid)
-            elif block['docB'] == doc_name:
+            elif block.get('docB') == doc_name:
                 result["blocks"].append({
                     "other_doc": block['docA'],
                     "start": block['B_start'],
