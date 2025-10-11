@@ -17,7 +17,7 @@ Identifies sentences that are exactly identical both across documents and within
   1. Convert sentences to lowercase
   2. Remove punctuation and special characters
   3. Compare exact string matches
-- **Output**: Pairs of identical sentences
+- **Output**: Pairs of identical sentences with category labels indicating cross-document or within-document matches.
 
 ### Use Case
 - Detecting verbatim copying (scalable for large document sets due to linear time and space complexity)
@@ -44,7 +44,7 @@ Identifies sentences that are nearly identical using SimHash algorithm. Detects 
      - Each n-gram is hashed, and their bitwise representations are combined (added or subtracted per bit position) to form a single fixed-size SimHash for the sentence.
   3. For every pair of sentences, calculate the Hamming distance between their SimHash fingerprints (i.e., count the number of differing bits). For instance, if "the quick brown fox" and "the quick brown dog" have SimHashes that differ in 5 bits, their Hamming distance is 5.
   4. If the Hamming distance is less than a specified threshold (e.g., 6), classify the sentence pair as near-duplicates. This means that even if "the quick brown fox" and "the quick brown dog" differ by just one word, they may still be detected as near-duplicates if their SimHashes are sufficiently similar.
-- **Output**: Pairs of similar sentences with Hamming distance
+- **Output**: Pairs of similar sentences with Hamming distance and category labels (cross-document or within-document)
 
 ### Use Case
 - Detecting paraphrased content

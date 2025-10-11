@@ -2,45 +2,50 @@ import React from 'react';
 
 interface SimilarityBadgeProps {
   score: number;
-  type?: 'exact' | 'simhash' | 'embedding' | 'overall';
-  showLabel?: boolean;
 }
 
-const SimilarityBadge: React.FC<SimilarityBadgeProps> = ({ 
-  score, 
-  type = 'overall',
-  showLabel = true 
-}) => {
-  const getColorClass = () => {
-    if (type === 'exact') return 'bg-red-100 text-red-800 border-red-300';
-    if (type === 'simhash') return 'bg-orange-100 text-orange-800 border-orange-300';
-    if (type === 'embedding') return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    
-    // Overall score color gradient
-    if (score >= 70) return 'bg-red-100 text-red-800 border-red-300';
-    if (score >= 40) return 'bg-orange-100 text-orange-800 border-orange-300';
-    if (score >= 20) return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    return 'bg-green-100 text-green-800 border-green-300';
+const SimilarityBadge: React.FC<SimilarityBadgeProps> = ({ score }) => {
+  const getColor = (s: number) => {
+    if (s >= 70) return '#dc2626'; // red-600
+    if (s >= 40) return '#f97316'; // orange-500
+    if (s >= 20) return '#eab308'; // yellow-500
+    return '#22c55e'; // green-500
   };
 
-  const getLabel = () => {
-    if (!showLabel) return '';
-    
-    if (type === 'exact') return 'Exact';
-    if (type === 'simhash') return 'Near-Dup';
-    if (type === 'embedding') return 'Semantic';
-    
-    if (score >= 70) return 'Very High';
-    if (score >= 40) return 'High';
-    if (score >= 20) return 'Moderate';
-    return 'Low';
-  };
+  const color = getColor(score);
+  const circumference = 2 * Math.PI * 18; // 2 * pi * radius
+  const offset = circumference - (score / 100) * circumference;
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getColorClass()}`}>
-      {showLabel && <span className="mr-1">{getLabel()}</span>}
-      <span className="font-bold">{score.toFixed(1)}%</span>
-    </span>
+    <div className="relative flex items-center justify-center w-12 h-12">
+      <svg className="w-full h-full" viewBox="0 0 40 40">
+        <circle
+          className="text-gray-200"
+          strokeWidth="4"
+          stroke="currentColor"
+          fill="transparent"
+          r="18"
+          cx="20"
+          cy="20"
+        />
+        <circle
+          className="transition-all duration-500 ease-in-out"
+          strokeWidth="4"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          stroke={color}
+          fill="transparent"
+          r="18"
+          cx="20"
+          cy="20"
+          transform="rotate(-90 20 20)"
+        />
+      </svg>
+      <span className="absolute text-sm font-bold" style={{ color }}>
+        {score.toFixed(1)}%
+      </span>
+    </div>
   );
 };
 

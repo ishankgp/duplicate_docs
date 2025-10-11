@@ -1,6 +1,6 @@
 import React from 'react';
 import { DuplicateMatch } from '../api';
-import SimilarityBadge from './SimilarityBadge';
+import TooltipInfo from './TooltipInfo';
 
 interface SentencePairProps {
   match: DuplicateMatch;
@@ -9,12 +9,10 @@ interface SentencePairProps {
 }
 
 const SentencePair: React.FC<SentencePairProps> = ({ match, currentDoc, onClick }) => {
-  // Defensive: default to cross-document if category is missing
   const category = match.category ?? 'cross-document';
-  
+
   const getBorderColor = () => {
     if (category === 'within-document') {
-      // Different color for within-document duplicates
       if (match.type === 'exact') return 'border-l-purple-500';
       if (match.type === 'simhash') return 'border-l-purple-400';
       return 'border-l-purple-300';
@@ -24,18 +22,25 @@ const SentencePair: React.FC<SentencePairProps> = ({ match, currentDoc, onClick 
     return 'border-l-yellow-500';
   };
 
+  const getTypeBadge = () => {
+    if (match.type === 'exact') return { label: 'Exact', className: 'bg-red-100 text-red-800' };
+    if (match.type === 'simhash') return { label: 'Near-Dup', className: 'bg-orange-100 text-orange-800' };
+    return { label: 'Semantic', className: 'bg-yellow-100 text-yellow-800' };
+  };
+
+  const typeBadge = getTypeBadge();
+
   return (
     <div 
-      className={`border-l-4 ${getBorderColor()} bg-white p-4 rounded-r-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer`}
+      className={`border-l-4 ${getBorderColor()} bg-white p-4 rounded-r-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer animate-fade-in`}
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
-          <SimilarityBadge 
-            score={100} 
-            type={match.type as any} 
-            showLabel={true}
-          />
+          <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${typeBadge.className}`}>
+            {typeBadge.label}
+          </span>
+          <TooltipInfo text="Match type indicates how the similarity was detected (exact copy, near duplicate, or semantic similarity)." />
           {category === 'within-document' && (
             <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-medium rounded-full">
               Within Doc

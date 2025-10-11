@@ -203,10 +203,14 @@ def run(args):
         doc_groups = defaultdict(list)
         for i in idxs:
             doc_groups[all_items[i].doc_id].append(i)
+        # Within-document combinations
+        for indices in doc_groups.values():
+            if len(indices) > 1:
+                for ia, ib in combinations(indices, 2):
+                    a, b = (ia, ib) if ia < ib else (ib, ia)
+                    exact_pairs.add((a, b))
         docs = sorted(doc_groups.keys())
-        if len(docs) < 2:
-            continue
-        # make combinations across different docs
+        # Cross-document combinations
         for da, db in combinations(docs, 2):
             for ia in doc_groups[da]:
                 for ib in doc_groups[db]:
