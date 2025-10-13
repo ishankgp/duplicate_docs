@@ -2,6 +2,7 @@
 FastAPI backend for duplicate document detection system.
 """
 
+import logging
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,6 +16,7 @@ from analyzer import DuplicateAnalyzer
 from converter import convert_docx_to_html
 
 app = FastAPI(title="Duplicate Document Detection API")
+logger = logging.getLogger("uvicorn.error")
 
 # Enable CORS for frontend
 app.add_middleware(
@@ -233,37 +235,39 @@ async def get_highlights(doc_name: str):
     """
     Get duplicate sentence IDs to highlight for a document.
     Returns mapping of sentence ID to highlight type and related documents.
-    
-    Args:
-        doc_name: Name of the document file
     """
+    logger.info(f"🟨 Request for highlights: {doc_name}")
+
     if not analyzer.has_results():
+        logger.warning("⚠️ No analysis results found in memory.")
         raise HTTPException(status_code=404, detail="No analysis results found")
     
     try:
+        logger.info(f"🔍 Fetching duplicate data for: {doc_name}")
         duplicates = analyzer.get_duplicates_for_doc(doc_name)
-        
-        # Build highlights mapping: sentence_id -> {type, docs, details}
+        logger.debug(f"Duplicate keys found: {list(duplicates.keys())}")
+
         highlights = {}
-        
-        # Exact matches (highest priority)
+
+        # --- Exact Matches ---
         for match in duplicates.get("exact", []):
             sent_id = match["sent_id"]
-            if sent_id not in highlights:
-                highlights[sent_id] = {
-                    "type": "exact",
-                    "priority": 3,
-                    "docs": [],
-                    "details": []
-                }
+            highlights.setdefault(sent_id, {
+                "type": "exact",
+                "priority": 3,
+                "docs": [],
+                "details": []
+            })
             highlights[sent_id]["docs"].append(match["other_doc"])
             highlights[sent_id]["details"].append({
                 "doc": match["other_doc"],
                 "sent_id": match["other_sent_id"],
                 "text": match["other_text"]
             })
-        
-        # SimHash matches
+
+        logger.info(f"✅ Processed {len(duplicates.get('exact', []))} exact matches.")
+
+        # --- SimHash Matches ---
         for match in duplicates.get("simhash", []):
             sent_id = match["sent_id"]
             if sent_id not in highlights:
@@ -280,8 +284,10 @@ async def get_highlights(doc_name: str):
                 "text": match["other_text"],
                 "hamming": match.get("hamming")
             })
-        
-        # Embedding matches
+
+        logger.info(f"✅ Processed {len(duplicates.get('simhash', []))} simhash matches.")
+
+        # --- Embedding Matches ---
         for match in duplicates.get("embedding", []):
             sent_id = match["sent_id"]
             if sent_id not in highlights:
@@ -298,19 +304,23 @@ async def get_highlights(doc_name: str):
                 "text": match["other_text"],
                 "cosine": match.get("cosine")
             })
-        
-        # Deduplicate docs lists
+
+        logger.info(f"✅ Processed {len(duplicates.get('embedding', []))} embedding matches.")
+
+        # --- Deduplicate ---
         for sent_id in highlights:
             highlights[sent_id]["docs"] = list(set(highlights[sent_id]["docs"]))
-        
+
+        logger.info(f"✨ Total highlighted sentences: {len(highlights)}")
+
         return {
             "highlights": highlights,
             "total_highlighted": len(highlights)
         }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting highlights: {str(e)}")
 
+    except Exception as e:
+        logger.exception(f"💥 Error generating highlights for {doc_name}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error getting highlights: {str(e)}")
 
 @app.get("/api/similarity-matrix")
 async def get_similarity_matrix():
