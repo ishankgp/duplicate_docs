@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  duplicate-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: duplicate-docs-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # Optional: enable embeddings
+      - USE_EMBEDDINGS=false
+    volumes:
+      - ./docs:/app/docs
+      - ./dedup_out:/app/dedup_out
+    command: >
+      uvicorn main:app --host 0.0.0.0 --port 8000 --reload
