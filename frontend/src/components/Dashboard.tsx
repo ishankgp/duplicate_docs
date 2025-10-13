@@ -166,8 +166,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* Documents Display */}
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {documents.map((doc) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4">
+            {documents.map((doc) => (
             <DocumentCard
               key={doc.doc}
               doc={doc}
@@ -178,6 +178,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -237,6 +238,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
